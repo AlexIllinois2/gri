@@ -3,6 +3,10 @@
     "jswysnemc/mark-shot": { "suffix": "rpm" },
     "clash-verge-rev/clash-verge-rev": { "suffix": "rpm" },
     "AnInsomniacy/motrix-next": { "suffix": "rpm" },
+    "rossmacarthur/sheldon": {
+        "suffix": "tar.gz",
+        "bins": ["sheldon"]
+    },
     "localsend/localsend": {
         "suffix": "tar.gz",
         "bins": ["localsend_app"],

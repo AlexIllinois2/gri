@@ -203,9 +203,18 @@ def create_symlink(source: Path, target: Path, description: str) -> bool:
             log_warn(f"{description} already points to the correct target, skipping")
             return True
         else:
-            log_error(f"Conflict: {target} already exists and points to {resolved}")
-            log_error(f"         expected: {source}")
-            return False
+            log_warn(f"Conflict: {target} already exists and points to {resolved}")
+            log_warn(f"         expected: {source}")
+            try:
+                answer = input("Overwrite? [y/N] ").strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                answer = "n"
+            if answer == "y":
+                target.unlink()
+                log_step(f"Removed existing: {target}")
+            else:
+                log_warn(f"Skipping {description}")
+                return True
     ensure_dir(target.parent)
     os.symlink(source, target)
     log_step(f"Created symlink: {target} -> {source}")
