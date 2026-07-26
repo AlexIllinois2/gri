@@ -62,13 +62,7 @@ def err(msg: str):
 # ── 数据加载 ──────────────────────────────────────────────────────
 
 def load_apps() -> list[dict]:
-    """加载 apps.json，返回 app 列表。
-
-    兼容三种格式：
-      - 数组: [{"repo": "foo", ...}, ...]
-      - 字典: {"repo": {"suffiz": "foo", ...}, ...}
-      - 字典嵌套: {"apps": [{"repo": "foo", ...}, ...]}
-    """
+    """加载 apps.json，返回 app 列表。格式：{"repo": {"suffix": "rpm", ...}, ...}"""
     apps_path = APPS_FILE
 
     if CONF_FILE.exists():
@@ -85,36 +79,21 @@ def load_apps() -> list[dict]:
     with open(apps_path) as f:
         data = json.load(f)
 
-    # 提取原始列表
-    if isinstance(data, list):
-        raw = data
-    elif isinstance(data, dict):
-        if "apps" in data and isinstance(data["apps"], list):
-            raw = data["apps"]
-        else:
-            # dict 格式: {"repo-name": {"type": "rpm", ...}}
-            raw = []
-            for key, val in data.items():
-                if not isinstance(val, dict):
-                    continue
-                val.setdefault("repo", key)
-                raw.append(val)
-    else:
-        err("apps.json: unsupported format, expected list or dict")
+    if not isinstance(data, dict):
+        err("apps.json: expected dict with repo as keys")
         sys.exit(1)
 
-    # 归一化：补充 repo，suffix 转 filter 和 type
+    # 归一化：dict → list，补充 repo，suffix 转 filter 和 type
     result = []
-    for item in raw:
-        if not isinstance(item, dict):
+    for key, val in data.items():
+        if not isinstance(val, dict):
             continue
-        if "repo" not in item:
-            continue
+        val.setdefault("repo", key)
+        item = val
 
         # 兼容旧版 suffix 字段
         suffix = item.get("suffix")
         if suffix:
-            # 从 suffix 推断 type（如果未显式设置）
             if "type" not in item:
                 if "rpm" in suffix:
                     item["type"] = "rpm"
@@ -122,11 +101,9 @@ def load_apps() -> list[dict]:
                     item["type"] = "tar.gz"
                 elif "appimage" in suffix.lower() or "AppImage" in suffix:
                     item["type"] = "appimage"
-            # suffix 转 filter（如果 filter 未显式设置）
             if "filter" not in item:
                 item["filter"] = [item.pop("suffix")]
             else:
-                # filter 已设置，只删 suffix 不转
                 del item["suffix"]
 
         result.append(item)
@@ -280,20 +257,20 @@ def install_targz(app: dict):
 # ── 命令实现 ──────────────────────────────────────────────────────
 
 def cmd_list():
+    apps = load_apps()
     installed = load_installed()
-    if not installed:
-        log("No apps installed.")
-        return
 
     print(f"{'Repo':<30} {'Version':<20} {'Type':<10}")
     print("-" * 60)
-    for repo, info in sorted(installed.items()):
-        ver = info.get("version", "?")
-        typ = info.get("type", "?")
+    for app in sorted(apps, key=lambda a: a["repo"]):
+        repo = app["repo"]
+        info = installed.get(repo, {})
+        ver = info.get("version", "")
+        typ = info.get("type", "")
         print(f"{repo:<30} {ver:<20} {typ:<10}")
 
 
-def cmd_update(repos: list[str]):
+def cmd_update(repos: list[str], yes: bool = False):
     apps = load_apps()
     installed = load_installed()
 
@@ -336,12 +313,20 @@ def cmd_update(repos: list[str]):
             err(f"Unknown type: {app_type} for {repo}")
             continue
 
+        if not yes:
+            try:
+                answer = input("Proceed with update? [y/N] ").strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                answer = "n"
+            if answer != "y":
+                log(f"Skipping {repo}")
+                continue
+
         handler(app)
 
         installed[repo] = {
             "version": latest_version,
             "type": app_type,
-            "repo": repo,
         }
         save_installed(installed)
         log(f"{repo} updated successfully")
@@ -362,13 +347,17 @@ def main():
         "repos", nargs="*", metavar="repo",
         help="要升级的 repo 名称（不传则升级全部）",
     )
+    update_parser.add_argument(
+        "-y", "--yes", action="store_true",
+        help="自动确认更新，跳过提示",
+    )
 
     args = parser.parse_args()
 
     if args.command == "list":
         cmd_list()
     elif args.command == "update":
-        cmd_update(args.repos)
+        cmd_update(args.repos, yes=args.yes)
 
 
 if __name__ == "__main__":
