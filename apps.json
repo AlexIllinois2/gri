@@ -19,6 +19,11 @@
     },
     "ggml-org/llama.cpp": {
         "suffix": "tar.gz",
-        "bins": ["llama-server"]
+        "bins": ["llama-cli", "llama-server", "llama-tts"]
+    },
+    "earendil-works/pi": {
+        "suffix": "tar.gz",
+        "filter": ["linux"],
+        "bins": ["pi"]
     }
 }

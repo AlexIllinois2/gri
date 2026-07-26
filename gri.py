@@ -215,7 +215,7 @@ def install_targz(app: dict):
     repo = app["repo"]
     name = repo_to_name(repo)
     filters = app.get("filter", [r"\.tar\.gz$"])
-    arch = app.get("arch", "x86_64|x86-64|amd64")
+    arch = app.get("arch", "x86_64|x86-64|x64|amd64")
 
     log(f"Downloading {name} ({repo})...")
     filename, version = run_gh_down(repo, filters, arch)

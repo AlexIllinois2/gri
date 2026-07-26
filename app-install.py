@@ -117,6 +117,13 @@ def extract_package(pkg_path: Path, target_dir: Path):
                     m.name = parts[1]
                 else:
                     m.name = os.path.basename(m.name)
+                # 跳过剥离后名称为空的条目（公共前缀目录本身）
+                if not m.name:
+                    continue
+                # 文件与已提取的目录冲突时，先移除目录
+                target_path = target_dir / m.name
+                if m.isfile() and target_path.is_dir():
+                    shutil.rmtree(target_path)
                 tar.extract(m, path=target_dir)
         else:
             log_step("No common top-level directory, extracting as-is")
