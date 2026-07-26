@@ -7,6 +7,7 @@ Linux 桌面应用发布管理工具。从 GitHub Release 下载并安装软件�
 - **GitHub CLI (`gh`)** — 查询 release、下载资产。需先[安装](https://cli.github.com/)并登录。
 - **Python 3.8+**
 - RPM 安装需要 `sudo dnf install`
+- **PATH**: 将`$HOME/.local/bin`添加到`PATH`环境变量中
 
 ## 安装方式
 
