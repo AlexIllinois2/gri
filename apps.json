@@ -1,0 +1,37 @@
+{
+    "apps": [
+        {
+            "repo": "docmirror/dev-sidecar",
+            "suffix": "rpm"
+        },
+        {
+            "repo": "jswysnemc/mark-shot",
+            "suffix": "rpm"
+        },
+        {
+            "repo": "clash-verge-rev/clash-verge-rev",
+            "suffix": "rpm"
+        },
+        {
+            "repo": "AnInsomniacy/motrix-next",
+            "suffix": "rpm"
+        },
+        {
+            "repo": "localsend/localsend",
+            "suffix": "tar.gz",
+            "icon": "data/flutter_assets/assets/img/logo-512.png",
+            "bins": ["localsend_app"]
+        },
+        {
+            "repo": "astral-sh/uv",
+            "filter": ["linux-gnu"],
+            "suffix": "tar.gz",
+            "bins": ["uv", "uvx"]
+        },
+        {
+            "repo": "ggml-org/llama.cpp",
+            "suffix": "tar.gz",
+            "bins": ["llama-server"]
+        }
+    ]
+}

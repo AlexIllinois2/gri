@@ -1,0 +1,5 @@
+{
+    "apps-conf": "apps.json",
+    "down-dir": "/tmp/gh",
+    "del-after-install": true
+}
