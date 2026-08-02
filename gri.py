@@ -266,7 +266,8 @@ def cmd_list():
 
     print(f"{'Repo':<30} {'Version':<20} {'Type':<10}")
     print("-" * 60)
-    for app in sorted(apps, key=lambda a: a["repo"]):
+    # for app in sorted(apps, key=lambda a: a["repo"]):
+    for app in sorted(apps, key=lambda a: (a["repo"] not in installed, a["repo"])):
         repo = app["repo"]
         info = installed.get(repo, {})
         ver = info.get("version", "")
