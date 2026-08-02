@@ -74,14 +74,60 @@ def find_asset(repo: str, filters: list[str], arch_pattern: str) -> dict | None:
         return None
 
     # gh 可能返回多行 JSON（每行一个对象），也可能返回单个对象
-    # 取第一个匹配
-    lines = [l.strip() for l in output.splitlines() if l.strip()]
-    try:
-        return json.loads(lines[0])
-    except json.JSONDecodeError:
-        print(f"错误: 无法解析 gh 输出: {output}", file=sys.stderr)
+    return choose_from_results(output)
+
+    # lines = [l.strip() for l in output.splitlines() if l.strip()]
+    # try:
+    #     return json.loads(lines[0])
+    # except json.JSONDecodeError:
+    #     print(f"错误: 无法解析 gh 输出: {output}", file=sys.stderr)
+    #     sys.exit(1)
+
+def choose_from_results(output):
+    lines = output.strip().splitlines()
+    if not lines:
+        print("错误: 没有收到任何结果", file=sys.stderr)
         sys.exit(1)
 
+    items = []
+    for idx, line in enumerate(lines, start=1):
+        try:
+            data = json.loads(line)
+            # 根据你的实际数据结构，选择一个有意义的字段展示
+            # 这里假设 data 中有 "name" 或 "title" 或 "tag_name"
+            display = data.get("name") or data.get("title") or data.get("tag_name") or data.get("id") or f"条目 {idx}"
+            items.append((idx, display, data))
+        except json.JSONDecodeError:
+            print(f"警告: 第 {idx} 行不是有效 JSON，已跳过: {line[:50]}...", file=sys.stderr)
+            continue
+
+    if not items:
+        print("错误: 没有可解析的有效 JSON 结果", file=sys.stderr)
+        sys.exit(1)
+
+    # 打印所有选项
+    print("\n找到以下结果，请选择序号：")
+    for idx, display, _ in items:
+        print(f"  [{idx}] {display}")
+
+    # 交互选择
+    while True:
+        try:
+            choice = input("请输入序号 (输入 q 退出): ").strip()
+            if choice.lower() == 'q':
+                print("已取消", file=sys.stderr)
+                sys.exit(0)
+            num = int(choice)
+            # 查找匹配的项
+            for idx, display, data in items:
+                if idx == num:
+                    return data
+            print(f"无效序号，请输入 1 ~ {len(items)} 之间的数字", file=sys.stderr)
+        except ValueError:
+            print("请输入有效的数字", file=sys.stderr)
+        except KeyboardInterrupt:
+            print("\n已取消", file=sys.stderr)
+            sys.exit(1)
 
 def download_asset(repo: str, filename: str, download_dir: str) -> str:
     os.makedirs(download_dir, exist_ok=True)
