@@ -186,6 +186,8 @@ def install_rpm(app: dict):
         err(f"dnf install failed: {e}")
         sys.exit(1)
 
+    os.remove(filepath)
+
     return version
 
 
@@ -250,6 +252,8 @@ def install_targz(app: dict):
     except subprocess.CalledProcessError as e:
         err(f"app-install.py failed: {e}")
         sys.exit(1)
+
+    os.remove(filepath)
 
     return version
 

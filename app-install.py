@@ -209,19 +209,7 @@ def create_symlink(source: Path, target: Path, description: str) -> bool:
         if resolved == source:
             log_warn(f"{description} already points to the correct target, skipping")
             return True
-        else:
-            log_warn(f"Conflict: {target} already exists and points to {resolved}")
-            log_warn(f"         expected: {source}")
-            try:
-                answer = input("Overwrite? [y/N] ").strip().lower()
-            except (EOFError, KeyboardInterrupt):
-                answer = "n"
-            if answer == "y":
-                target.unlink()
-                log_step(f"Removed existing: {target}")
-            else:
-                log_warn(f"Skipping {description}")
-                return True
+        target.unlink()
     ensure_dir(target.parent)
     os.symlink(source, target)
     log_step(f"Created symlink: {target} -> {source}")
@@ -322,11 +310,6 @@ def main():
 
     # ── 第二阶段：创建目录并解压 ──
     if app_dir.exists():
-        log_warn(f"App directory already exists: {app_dir}")
-        answer = input("Overwrite? [y/N] ").strip().lower()
-        if answer != "y":
-            log_step("Installation cancelled.")
-            sys.exit(0)
         shutil.rmtree(app_dir)
 
     ensure_dir(app_dir)
