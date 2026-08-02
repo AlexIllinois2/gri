@@ -295,6 +295,7 @@ def cmd_update(repos: list[str], yes: bool = False):
         "tar.gz": install_targz,
     }
 
+    print('如果您在使用dev-sidecar, 请先执行: `unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy ALL_PROXY all_proxy` 以确保gh能够正常下载release')
     for app in apps_to_update:
         repo = app["repo"]
         app_type = app.get("type", "rpm")
