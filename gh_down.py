@@ -76,12 +76,6 @@ def find_asset(repo: str, filters: list[str], arch_pattern: str) -> dict | None:
     # gh 可能返回多行 JSON（每行一个对象），也可能返回单个对象
     return choose_from_results(output)
 
-    # lines = [l.strip() for l in output.splitlines() if l.strip()]
-    # try:
-    #     return json.loads(lines[0])
-    # except json.JSONDecodeError:
-    #     print(f"错误: 无法解析 gh 输出: {output}", file=sys.stderr)
-    #     sys.exit(1)
 
 def choose_from_results(output):
     lines = output.strip().splitlines()
@@ -105,12 +99,15 @@ def choose_from_results(output):
         print("错误: 没有可解析的有效 JSON 结果", file=sys.stderr)
         sys.exit(1)
 
-    # 打印所有选项
+    # 只有一条结果，直接返回，不交互
+    if len(items) == 1:
+        return items[0][2]
+
+    # 多条结果，让用户选择
     print("\n找到以下结果，请选择序号：")
     for idx, display, _ in items:
         print(f"  [{idx}] {display}")
 
-    # 交互选择
     while True:
         try:
             choice = input("请输入序号 (输入 q 退出): ").strip()
@@ -118,7 +115,6 @@ def choose_from_results(output):
                 print("已取消", file=sys.stderr)
                 sys.exit(0)
             num = int(choice)
-            # 查找匹配的项
             for idx, display, data in items:
                 if idx == num:
                     return data
@@ -128,6 +124,7 @@ def choose_from_results(output):
         except KeyboardInterrupt:
             print("\n已取消", file=sys.stderr)
             sys.exit(1)
+
 
 def download_asset(repo: str, filename: str, download_dir: str) -> str:
     os.makedirs(download_dir, exist_ok=True)
@@ -158,6 +155,30 @@ def get_release_tag(repo: str) -> str:
     return result.stdout.strip()
 
 
+def download_release(repo: str, filters: list[str], arch: str, download_dir: str) -> tuple[str, str]:
+    """从 GitHub Release 下载匹配的资产。返回 (filename, version)。"""
+    print(f"查询 {repo} 的 latest release 匹配资产...", file=sys.stderr)
+    asset = find_asset(repo, filters, arch)
+
+    if asset is None:
+        print(
+            f"未找到匹配 filter '{filters}' 且架构匹配的资产",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    filename = asset["name"]
+    print(f"找到资产: {filename}", file=sys.stderr)
+    print(f"下载链接: {asset['url']}", file=sys.stderr)
+
+    dest = download_asset(repo, filename, download_dir)
+    print(f"下载完成: {dest}", file=sys.stderr)
+
+    # 返回文件名和版本号（标准输出，每行一个）
+    tag = get_release_tag(repo)
+    return filename, tag
+
+
 def main():
     parser = argparse.ArgumentParser(description="从 GitHub Release 下载匹配的资产文件")
     parser.add_argument("repo", help="GitHub 仓库, 如 jswysnemc/mark-shot")
@@ -176,24 +197,7 @@ def main():
     )
     args = parser.parse_args()
 
-    print(f"查询 {args.repo} 的 latest release 匹配资产...", file=sys.stderr)
-    asset = find_asset(args.repo, args.filters, args.arch)
-
-    if asset is None:
-        print(
-            f"未找到匹配 filter '{args.filters}' 且架构匹配的资产",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    filename = asset["name"]
-    print(f"找到资产: {filename}", file=sys.stderr)
-
-    dest = download_asset(args.repo, filename, args.download_dir)
-    print(f"下载完成: {dest}", file=sys.stderr)
-
-    # 返回文件名和版本号（标准输出，每行一个）
-    tag = get_release_tag(args.repo)
+    filename, tag = download_release(args.repo, args.filters, args.arch, args.download_dir)
     print(filename)
     print(tag)
 

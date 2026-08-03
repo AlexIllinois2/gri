@@ -9,10 +9,10 @@ ldr.py — Linux Desktop Release Manager
 
 数据源: conf.json -> apps.json
 
-用gh-down.py下载软件包（--filter 可多次传参，匹配资产名）
+用gh_down.py下载软件包（--filter 可多次传参，匹配资产名）
 sudo dnf install 安装rpm
 mv <name> ~/.local/bin/<name> 安装appimage
-用app-install.py安装tar.gz
+用app_install.py安装tar.gz
 """
 
 import argparse
@@ -23,6 +23,9 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+from gh_down import download_release
+from app_install import install_package as app_install_package
+
 # ── 路径常量 ──────────────────────────────────────────────────────
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -30,8 +33,6 @@ DATA_DIR = SCRIPT_DIR
 CONF_FILE = DATA_DIR / "conf.json"
 APPS_FILE = DATA_DIR / "apps.json"
 INSTALLED_FILE = DATA_DIR / "installed.json"
-GH_DOWN = SCRIPT_DIR / "gh-down.py"
-APP_INSTALL = SCRIPT_DIR / "app-install.py"
 BIN_DIR = Path.home() / ".local" / "bin"
 DOWNLOAD_DIR = "/tmp/gh"
 
@@ -146,24 +147,7 @@ def get_latest_version(repo: str) -> Optional[str]:
 
 def run_gh_down(repo: str, filters: list[str], arch: str) -> tuple[str, str]:
     """调用 gh-down.py，返回 (filename, version)。"""
-    cmd = [
-        sys.executable, str(GH_DOWN),
-        repo,
-        "--arch", arch,
-        "--download-dir", DOWNLOAD_DIR,
-    ]
-    for f in filters:
-        cmd.extend(["--filter", f])
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        err(f"gh-down.py failed for {repo}: {result.stderr.strip()}")
-        sys.exit(1)
-
-    lines = [l.strip() for l in result.stdout.splitlines() if l.strip()]
-    if len(lines) >= 2:
-        return lines[0], lines[1]
-    err(f"Unexpected output from gh-down.py for {repo}: {result.stdout}")
-    sys.exit(1)
+    return download_release(repo, filters, arch, DOWNLOAD_DIR)
 
 
 # ── 安装方法 ──────────────────────────────────────────────────────
@@ -223,35 +207,21 @@ def install_targz(app: dict):
     filename, version = run_gh_down(repo, filters, arch)
     filepath = os.path.join(DOWNLOAD_DIR, filename)
 
-    cmd = [
-        sys.executable, str(APP_INSTALL),
-        "--pkg", filepath,
-        "--name", name,
-    ]
+    # 收集 bins 参数
+    bins = app.get("bins")
+    if not bins and "bin" in app:
+        bins = [app["bin"]]
 
-    if "bins" in app:
-        for b in app["bins"]:
-            cmd.extend(["--bins", b])
-    elif "bin" in app:
-        cmd.extend(["--bins", app["bin"]])
-    else:
-        warn(f"No --bins specified for {name}, skipping binary setup")
-
-    if "icon" in app:
-        cmd.extend(["--icon", app["icon"]])
-    if "cicon" in app:
-        cmd.extend(["--cicon", app["cicon"]])
-    if "service" in app:
-        cmd.extend(["--service", app["service"]])
-    if app.get("autostart"):
-        cmd.append("--autostart")
-
-    log(f"Installing {name} via app-install.py...")
-    try:
-        subprocess.run(cmd, check=True)
-    except subprocess.CalledProcessError as e:
-        err(f"app-install.py failed: {e}")
-        sys.exit(1)
+    log(f"Installing {name} via app_install.py...")
+    app_install_package(
+        pkg_path=filepath,
+        name=name,
+        bins=bins,
+        icon=app.get("icon"),
+        cicon=app.get("cicon"),
+        service=app.get("service"),
+        autostart=app.get("autostart", False),
+    )
 
     os.remove(filepath)
 

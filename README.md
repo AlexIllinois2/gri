@@ -88,8 +88,8 @@ python3 gri.py update owner/repo1 owner/repo2
 ```
 gri/
 ├── gri.py          # 主入口 CLI
-├── gh-down.py      # GitHub Release 下载模块
-├── app-install.py  # tar.gz 应用安装器
+├── gh_down.py      # GitHub Release 下载模块
+├── app_install.py  # tar.gz 应用安装器
 ├── osinfo.py       # 系统信息工具
 ├── apps.json       # 应用仓库配置
 ├── conf.json       # 可选配置

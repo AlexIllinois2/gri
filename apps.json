@@ -19,6 +19,7 @@
     },
     "ggml-org/llama.cpp": {
         "suffix": "tar.gz",
+        "filter": ["ubuntu-vulkan"],
         "bins": ["llama-cli", "llama-server", "llama-tts"]
     },
     "earendil-works/pi": {

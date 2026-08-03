@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-app-install.py — 通用应用安装器
+app_install.py — 通用应用安装器
 
 将 tar.gz 应用包安装到 ~/.local/app/<app_name>/，
 自动生成 .desktop、.service 文件并创建相关软链接。
@@ -258,49 +258,51 @@ def write_uninstall_script(app_dir: Path, app_name: str, symlink_paths: List[Pat
     uninstall_path.chmod(0o755)
 
 
-# ── 主流程 ──────────────────────────────────────────────────────────
+# ── 库函数 ──────────────────────────────────────────────────────────
 
-def main():
-    args = parse_args()
+def install_package(
+    pkg_path: str,
+    name: str | None = None,
+    bins: list[str] | None = None,
+    icon: str | None = None,
+    cicon: str | None = None,
+    service: str | None = None,
+    autostart: bool = False,
+) -> None:
+    """将 tar.gz 包安装到 ~/.local/app/<name>/。
 
-    # ── 参数校验 ──
-    if args.service is _UNSET:
-        # --service 未提供，不生成 service
-        pass
-    elif args.service is None:
-        # --service 提供了但没有值 → nargs="?" const=None
-        log_error("--service requires a non-empty command when used.")
-        sys.exit(1)
-    elif args.service.strip() == "":
-        # --service '' 空字符串
-        log_error("--service requires a non-empty command when used.")
-        sys.exit(1)
-    if not args.bins:
-        log_error("--bins is required.")
-        sys.exit(1)
-
-    # 去重并保持顺序（仅对 --bins）
-    if args.bins:
+   参数:
+     pkg_path: tar.gz 包路径
+     name: 应用名（默认从包文件名推导）
+     bins: 包内可执行文件路径列表（相对包内根目录）
+     icon: desktop 文件图标路径（相对包内根目录）
+     cicon: 外部图标文件路径（会被复制到应用目录）
+     service: systemd user service 的执行命令（None 表示不生成）
+     autostart: 是否开机自启
+    """
+    if bins:
         seen = set()
         unique_bins = []
-        for b in args.bins:
+        for b in bins:
             if b in seen:
                 log_warn(f"Duplicated --bins value: {b}, ignoring duplicate.")
                 continue
             seen.add(b)
             unique_bins.append(b)
-        args.bins = unique_bins
+        bins = unique_bins
+    else:
+        bins = []
 
     # 是否生成 desktop：有 icon 或 cicon 才生成
-    want_desktop = bool(args.icon or args.cicon)
+    want_desktop = bool(icon or cicon)
 
     # ── 名称推导 ──
-    app_name = args.name if args.name else derive_name(args.pkg)
+    app_name = name if name else derive_name(pkg_path)
     log_step(f"Application name: {app_name}")
 
-    pkg_path = Path(args.pkg).resolve()
-    if not pkg_path.exists():
-        log_error(f"Package not found: {pkg_path}")
+    pkg_path_obj = Path(pkg_path).resolve()
+    if not pkg_path_obj.exists():
+        log_error(f"Package not found: {pkg_path_obj}")
         sys.exit(1)
 
     # ── 路径准备 ──
@@ -315,7 +317,7 @@ def main():
     ensure_dir(app_dir)
 
     try:
-        extract_package(pkg_path, app_dir)
+        extract_package(pkg_path_obj, app_dir)
     except (tarfile.TarError, PermissionError) as e:
         log_error(f"Failed to extract package: {e}")
         shutil.rmtree(app_dir, ignore_errors=True)
@@ -323,7 +325,7 @@ def main():
 
     # 验证 bin 存在
     bin_paths: List[Path] = []
-    for bin_rel in args.bins:
+    for bin_rel in bins:
         bin_path = (app_dir / bin_rel).resolve()
         if not bin_path.exists():
             log_error(f"Binary not found at expected path: {bin_path}")
@@ -336,22 +338,20 @@ def main():
     # 3a. 生成 .desktop 文件（仅当 want_desktop）
     desktop_paths: List[Path] = []
     if want_desktop:
-        bin_rel_paths_for_desktop = args.bins
         desktop_paths = generate_desktop(
             app_dir=app_dir,
             app_name=app_name,
-            bin_rel_paths=bin_rel_paths_for_desktop,
-            icon_rel_path=args.icon,
-            cicon_path=args.cicon,
-            autostart=args.autostart,
+            bin_rel_paths=bins,
+            icon_rel_path=icon,
+            cicon_path=cicon,
+            autostart=autostart,
             bin_is_moved=False,
         )
 
     # 3b. 生成 .service 文件
     service_path: Optional[Path] = None
-    if args.service is not _UNSET:
-        # args.service 是用户指定的完整命令字符串（已验证非空）
-        service_path = generate_service(app_dir, app_name, args.service)
+    if service is not None:
+        service_path = generate_service(app_dir, app_name, service)
 
     # 3c. 创建基础目录
     for d in [BIN_DIR, DESKTOP_DIR, SYSTEMD_DIR, AUTOSTART_DIR]:
@@ -363,7 +363,7 @@ def main():
 
     # bin 软链接
     bin_links: List[Path] = []
-    for bin_rel, bin_path in zip(args.bins, bin_paths):
+    for bin_rel, bin_path in zip(bins, bin_paths):
         link_name = BIN_DIR / Path(bin_rel).name
         bin_links.append(link_name)
         symlink_targets.append(link_name)
@@ -387,7 +387,7 @@ def main():
             success = False
 
     # autostart 软链接 — 只对主 desktop 文件（仅当 want_desktop）
-    if args.autostart and want_desktop and desktop_paths:
+    if autostart and want_desktop and desktop_paths:
         autostart_link = AUTOSTART_DIR / f"{app_name}.desktop"
         symlink_targets.append(autostart_link)
         if not create_symlink(desktop_paths[0], autostart_link, f"autostart symlink {autostart_link}"):
@@ -411,11 +411,43 @@ def main():
         log_step(f"  Binary (Linked): {bl}")
     for dl in desktop_links:
         log_step(f"  Desktop:       {dl}")
-    if args.service is not _UNSET:
+    if service is not None:
         log_step(f"  Service:       {SYSTEMD_DIR / f'{app_name}.service'}")
         log_step("  Run: systemctl --user start {}.service".format(app_name))
-    if args.autostart:
+    if autostart:
         log_step(f"  Autostart:     {AUTOSTART_DIR / f'{app_name}.desktop'}")
+
+
+# ── CLI ──────────────────────────────────────────────────────────────
+
+def main():
+    args = parse_args()
+
+    # ── 参数校验 ──
+    if args.service is _UNSET:
+        # --service 未提供，不生成 service
+        pass
+    elif args.service is None:
+        # --service 提供了但没有值 → nargs="?" const=None
+        log_error("--service requires a non-empty command when used.")
+        sys.exit(1)
+    elif args.service.strip() == "":
+        # --service '' 空字符串
+        log_error("--service requires a non-empty command when used.")
+        sys.exit(1)
+    if not args.bins:
+        log_error("--bins is required.")
+        sys.exit(1)
+
+    install_package(
+        pkg_path=args.pkg,
+        name=args.name,
+        bins=args.bins,
+        icon=args.icon,
+        cicon=args.cicon,
+        service=args.service if args.service is not _UNSET else None,
+        autostart=args.autostart,
+    )
 
 
 if __name__ == "__main__":
