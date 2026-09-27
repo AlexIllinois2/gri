@@ -151,7 +151,7 @@ export function newSpinner() {
   };
 }
 
-// 兼容旧调用/Web 场景的占位导出
+// 兼容旧调用场景的占位导出
 export function intro(msg: string) {
   process.stdout.write("\n" + CYAN + "◆" + RESET + " " + msg + "\n");
 }

@@ -75,7 +75,7 @@ export interface RunCallbacks {
   onProgress?: (p: ProgressEvent) => void;
 }
 
-/** 服务端/无头安装入口（供 Web 与 -y 场景复用） */
+/** 无头安装入口（供 -y 场景复用） */
 export async function installNonInteractive(
   params: InstallParams,
   cb: RunCallbacks = {},
@@ -160,7 +160,7 @@ export async function installNonInteractive(
   cb.onLog?.(`✅ ${id}@${release.tag} 安装完成`);
 }
 
-/** 检查可升级状态（用于 Web 控制台） */
+/** 检查可升级状态 */
 export async function checkUpdates(ids?: string[]): Promise<any[]> {
   const config = ConfigStore.load();
   const installed = InstalledStore_.load();
@@ -194,7 +194,7 @@ export async function checkUpdates(ids?: string[]): Promise<any[]> {
   return out;
 }
 
-/** 非交互式升级（供 Web 调用；等价于 update -y） */
+/** 非交互式升级（等价于 update -y） */
 export async function updateNonInteractive(ids: string[], cb: RunCallbacks = {}): Promise<void> {
   const config = ConfigStore.load();
   const installed = InstalledStore_.load();

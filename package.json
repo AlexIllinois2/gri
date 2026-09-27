@@ -1,7 +1,7 @@
 {
   "name": "gri-ts",
   "version": "1.0.0",
-  "description": "Modern GitHub Release app manager — CLI + local Web UI, built with Bun + TypeScript",
+  "description": "Modern GitHub Release app manager — CLI, built with Bun + TypeScript",
   "type": "module",
   "bin": {
     "gri": "./src/index.ts"
@@ -12,8 +12,7 @@
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "build:cli": "bun build ./src/index.ts --compile --target=bun-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m) --outfile dist/gri",
-    "build:web": "bun build ./web/index.html --production --outdir dist/web --public-path /",
-    "build": "bun run build:cli && bun run build:web"
+    "build": "bun run build:cli"
   },
   "dependencies": {
     "commander": "^12.1.0",

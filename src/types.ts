@@ -1,4 +1,4 @@
-// 共享类型定义 —— 被 CLI、核心逻辑、Web 后端与前端复用。
+// 共享类型定义 —— 被 CLI 与核心逻辑复用。
 
 /** 操作系统大类 */
 export type OS = "linux" | "macos" | "windows";
@@ -100,8 +100,6 @@ export interface ConfigData {
   binDir: string;
   appsDir: string;
   deleteAfterInstall: boolean;
-  openBrowserOnUi: boolean;
-  serverPort: number;
 }
 
 /** 下载来源 */

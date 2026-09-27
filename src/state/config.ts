@@ -15,8 +15,6 @@ const ConfigSchema = z.object({
   binDir: z.string().default(BIN_DIR_DEFAULT),
   appsDir: z.string().default(APPS_DIR_DEFAULT),
   deleteAfterInstall: z.boolean().default(false),
-  openBrowserOnUi: z.boolean().default(true),
-  serverPort: z.number().int().default(5731),
 });
 
 export class ConfigStore {

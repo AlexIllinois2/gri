@@ -2,8 +2,6 @@
 
 结合 [dra](https://github.com/devmatteini/dra) 的 **Release 资产模式匹配** 与 [gri](https://github.com/AlexIllinois2/gri) 的 **Linux 桌面软件生命周期管理**，用 **Bun + TypeScript** 重写的新一代 GitHub Release 应用管理器。
 
-同时提供 **CLI** 与 **本地 Web 单页管理界面** 两种形态。
-
 ## 功能特性
 
 - **多源下载**：原生 `fetch`（带 token）、`aria2c` 多线程、以及 `gh` CLI 兜底；下载前统一打印可点击的下载链接。
@@ -11,7 +9,6 @@
 - **包管理器自动优先**：Fedora/RHEL 优先 `.rpm`、Debian/Ubuntu 优先 `.deb`、否则归档/AppImage。
 - **多类型安装器**：压缩包（`tar.gz` / `tgz` / `zip` / `tar.xz` / `tar.bz2`，统一为 `archive` 类型）、`AppImage`、`rpm`、`deb`、纯二进制 `exe/raw`；自动软链到 `~/.local/bin`、生成 `.desktop`、systemd 用户服务与开机自启。
 - **规则与状态分离**：`~/.config/gri/apps.json` 保存「怎么装」（type / filter / layout），`~/.local/share/gri/installed.json` 只记「装了什么、装在哪」；`update` 按 id 取回规则，跨版本复用同一套筛选与布局。
-- **本地 Web 控制台**：`gri ui` 启动 `Bun.serve` 服务并打开浏览器；最后一个网页关闭后自动停服。
 
 ## 快速开始
 
@@ -21,7 +18,6 @@ bun run dev install junegunn/fzf          # 交互式安装
 bun run dev list                          # 列出已装
 bun run dev update -y                     # 批量升级
 bun run dev token <your_pat>              # 配置 GitHub Token
-bun run dev ui                            # 打开 Web 管理界面
 ```
 
 > `bun run dev` 等价于 `bun run src/index.ts`。
@@ -36,7 +32,6 @@ bun run dev ui                            # 打开 Web 管理界面
 | `update [repo…] [-y]` | 升级；`-y` 静默批量，缺失平台包末尾汇总 |
 | `remove <repo> [-y]` | 移除并清理软链/服务/目录（rpm/deb 触发包管理器卸载） |
 | `token [<token>]` | 查看或设置 PAT（权限 600） |
-| `ui` / `serve` | 启动 Web 服务（开/不打开浏览器） |
 
 ## 数据目录（遵循 XDG Base Directory）
 
@@ -63,7 +58,7 @@ $XDG_DATA_HOME/gri/     默认 ~/.local/share/gri
 ```bash
 bun test            # 单元测试
 bun run typecheck   # 类型检查
-bun run build       # 编译 CLI + 构建 Web 前端到 dist/
+bun run build       # 编译 CLI 到 dist/
 ```
 
 ## 架构
@@ -76,6 +71,4 @@ src/
   state/       config · apps · installed  (XDG 三目录)
   ui/          @clack 交互封装
   commands/    list · install · down · update · remove · token
-  server/      Bun.serve + WS + REST + 生命周期
-web/           自包含 SPA（Tailwind CDN + 原生 JS）
 ```

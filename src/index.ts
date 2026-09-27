@@ -8,8 +8,6 @@ import { cmdUpdate } from "./commands/update.ts";
 import { cmdRemove } from "./commands/remove.ts";
 import { cmdDown } from "./commands/down.ts";
 import { cmdToken } from "./commands/token.ts";
-import { startServer } from "./server/server.ts";
-import { ConfigStore } from "./state/config.ts";
 import { ensureDirs } from "./state/paths.ts";
 import { log } from "./util/log.ts";
 
@@ -104,20 +102,6 @@ program
   .argument("[token]", "要保存的 PAT（省略则查看当前状态）")
   .action(async (token?: string) => {
     await cmdToken(token);
-  });
-
-program
-  .command("ui")
-  .description("启动本地 Web 服务并打开浏览器")
-  .action(() => {
-    startServer(true);
-  });
-
-program
-  .command("serve")
-  .description("仅启动本地 Web 服务（不打开浏览器）")
-  .action(() => {
-    startServer(false);
   });
 
 program
